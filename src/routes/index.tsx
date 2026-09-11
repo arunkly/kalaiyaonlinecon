@@ -56,7 +56,7 @@ function Home() {
       {stories.map((article) => (
         <div key={article.slug}>
           <Link to="/article/$slug" params={{ slug: article.slug }} className="block">
-            <h2 className="text-center font-display text-[35px] font-bold leading-[1.25] text-ink md:text-[40px] lg:text-[60px]">
+            <h2 className="text-center font-display text-[35px] font-bold leading-[1.28] text-ink md:text-[40px] lg:text-[50px]">
               {displayTitle(article)}
             </h2>
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
