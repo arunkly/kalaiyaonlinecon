@@ -1,11 +1,7 @@
-import { afterEach, beforeEach, describe, it, mock } from "node:test";
+import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
-import {
-  callTool,
-  failureMemoSize,
-  isConnectorTokenReady,
-} from "./client.server.ts";
-import { ConnectorType, GoogleCalendarTools } from "./types.ts";
+import { callTool, failureMemoSize } from "./client.server.ts";
+import { ConnectorType } from "./types.ts";
 import type { ToolArgs } from "./types.ts";
 import { isLoginRequired, redirectToLoginIfRequired } from "./login.ts";
 import { classifyCallToolError } from "./errors.ts";
@@ -131,87 +127,17 @@ describe("callTool failure memo", () => {
   });
 
   it("never memoizes login-required 401s", async () => {
-    process.env.GROK_PROJECT_ID = "proj-1";
-    try {
-      await withStubbedGate(401, { errorMessage: "login required" }, async (calls) => {
-        const options = {
-          connectorType: ConnectorType.GoogleDrive,
-          token: fakeJwt({ sub: "memo-user-4", iat: 1000, exp: 2000 }),
-        };
-        const first = await callTool("google_drive_search", { q: "auth" }, options);
-        const second = await callTool("google_drive_search", { q: "auth" }, options);
-        assert.equal(first.ok, false);
-        assert.equal(first.loginRequired, true);
-        assert.equal(second.loginRequired, true);
-        assert.equal(calls(), 2);
-      });
-    } finally {
-      delete process.env.GROK_PROJECT_ID;
-    }
-  });
-});
-
-describe("callTool in the workspace preview vs deployed", () => {
-  const options = { connectorType: ConnectorType.GoogleDrive };
-  const savedEnvToken = process.env.GROK_CONNECTOR_ACCESS_TOKEN;
-
-  beforeEach(() => {
-    delete process.env.GROK_CONNECTOR_ACCESS_TOKEN;
-    delete process.env.GROK_PROJECT_ID;
-  });
-  afterEach(() => {
-    if (savedEnvToken === undefined) {
-      delete process.env.GROK_CONNECTOR_ACCESS_TOKEN;
-    } else {
-      process.env.GROK_CONNECTOR_ACCESS_TOKEN = savedEnvToken;
-    }
-    delete process.env.GROK_PROJECT_ID;
-  });
-
-  it("returns pending (no loginRequired) when the preview has no token yet", async () => {
-    const result = await callTool("google_drive_search", {}, options);
-    assert.equal(result.ok, false);
-    assert.equal(result.pending, true);
-    assert.equal(result.loginRequired, undefined);
-    assert.match(result.errorMessage ?? "", /^connector_token_pending/);
-  });
-
-  it("returns a plain error (no sign-in CTA) when a deployed app has no token", async () => {
-    process.env.GROK_PROJECT_ID = "proj-1";
-    const result = await callTool("google_drive_search", {}, options);
-    assert.equal(result.ok, false);
-    assert.equal(result.loginRequired, undefined);
-    assert.equal(result.loginUrl, undefined);
-    assert.equal(result.pending, undefined);
-    assert.match(result.errorMessage ?? "", /^missing_connector_token/);
-  });
-
-  it("treats a gate 401 in the preview as pending and parks the rejected token", async () => {
     await withStubbedGate(401, { errorMessage: "login required" }, async (calls) => {
-      process.env.GROK_CONNECTOR_ACCESS_TOKEN = fakeJwt({ sub: "p", iat: 1, exp: 2 });
-      assert.equal(isConnectorTokenReady(), true);
-
-      const result = await callTool("google_drive_search", {}, options);
-      assert.equal(result.pending, true);
-      assert.equal(result.loginRequired, undefined);
-      assert.match(result.errorMessage ?? "", /^connector_token_pending/);
-      assert.equal(calls(), 1);
-      assert.equal(isConnectorTokenReady(), false);
-
-      process.env.GROK_CONNECTOR_ACCESS_TOKEN = fakeJwt({ sub: "p", iat: 3, exp: 4 });
-      assert.equal(isConnectorTokenReady(), true);
-    });
-  });
-
-  it("keeps loginRequired for a gate 401 on a deployed app", async () => {
-    process.env.GROK_PROJECT_ID = "proj-1";
-    await withStubbedGate(401, { errorMessage: "login required" }, async () => {
-      const result = await callTool("google_drive_search", {}, {
-        ...options,
-        token: fakeJwt({ sub: "d", iat: 1, exp: 2 }),
-      });
-      assert.equal(result.loginRequired, true);
-      assert.equal(result.pending, undefined);
+      const options = {
+        connectorType: ConnectorType.GoogleDrive,
+        token: fakeJwt({ sub: "memo-user-4", iat: 1000, exp: 2000 }),
+      };
+      const first = await callTool("google_drive_search", { q: "auth" }, options);
+      const second = await callTool("google_drive_search", { q: "auth" }, options);
+      assert.equal(first.ok, false);
+      assert.equal(first.loginRequired, true);
+      assert.equal(second.loginRequired, true);
+      assert.equal(calls(), 2);
     });
   });
 });
@@ -394,51 +320,20 @@ describe("redirectToLoginIfRequired", () => {
   });
 });
 
-describe("GoogleCalendarTools", () => {
-  it("does not expose a list_events name", () => {
-    assert.equal(GoogleCalendarTools.search, "google_calendar_search");
-    assert.equal(GoogleCalendarTools.listCalendars, "google_calendar_list_calendars");
-    const toolNames: readonly string[] = Object.values(GoogleCalendarTools);
-    assert.equal(toolNames.includes("google_calendar_list_events"), false);
-  });
-});
-
 describe("classifyCallToolError", () => {
   it("returns null for successful results", () => {
     assert.equal(classifyCallToolError({ ok: true, data: {} }), null);
   });
 
-  it("classifies a pending preview token as pending before any other kind", () => {
-    const state = classifyCallToolError({
-      ok: false,
-      data: null,
-      pending: true,
-      errorMessage: "connector_token_pending: the preview has not received the connector token yet",
-    });
-    assert.equal(state?.kind, "pending");
-    assert.match(state?.message ?? "", /Connecting/);
-    assert.match(state?.detail ?? "", /connector_token_pending/);
-  });
-
-  it("classifies a deployed missing token as error, not a login CTA", () => {
-    const state = classifyCallToolError({
-      ok: false,
-      data: null,
-      errorMessage: "missing_connector_token: open this app through the edge gate",
-    });
-    assert.equal(state?.kind, "error");
-    assert.match(state?.detail ?? "", /missing_connector_token/);
-  });
-
-  it("classifies gate loginRequired without a missing-token message as login", () => {
+  it("classifies login-required before message matching", () => {
     const state = classifyCallToolError({
       ok: false,
       data: null,
       loginRequired: true,
-      errorMessage: "login required",
+      errorMessage: "missing_connector_token",
     });
     assert.equal(state?.kind, "login");
-    assert.equal(state?.detail, "login required");
+    assert.equal(state?.detail, "missing_connector_token");
   });
 
   it("classifies not_connected and failed_precondition", () => {

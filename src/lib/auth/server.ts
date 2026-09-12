@@ -103,90 +103,27 @@ const LOCAL_DEV_ORIGINS: string[] = [
   "http://127.0.0.1:8080",
   "http://[::1]:8080",
 ];
-function publicOrigin(value?: string | null) {
-  if (!value) return null;
-  const trimmed = value.trim().replace(/\/+$/, "");
-  if (!trimmed) return null;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
-  return `https://${trimmed}`;
-}
+const baseURL = explicitBaseURL ?? {
+  // Include loopback hosts so dynamic baseURL resolves for local email/password
+  // (not only the preview wildcard).
+  allowedHosts: [...previewAllowedHosts, "localhost", "127.0.0.1", "[::1]"],
+  // `auto` → trust both http:// and https:// expansions of allowedHosts
+  // (preview is https; local dev is http).
+  protocol: "auto" as const,
+  fallback: "http://localhost:8080",
+};
 
-function withWwwTwin(origin: string) {
-  try {
-    const url = new URL(origin);
-    const twins = [url.origin];
-    if (url.hostname.startsWith("www.")) twins.push(`${url.protocol}//${url.hostname.slice(4)}`);
-    else if (url.hostname.includes(".")) twins.push(`${url.protocol}//www.${url.hostname}`);
-    return twins;
-  } catch {
-    return [origin];
-  }
-}
-
-function originsFromRequest(request?: Request) {
-  if (!request) return [] as string[];
-  const hosts = [request.headers.get("x-forwarded-host"), request.headers.get("host")]
-    .flatMap((value) => (value ? value.split(",") : []))
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const proto = (request.headers.get("x-forwarded-proto") || "https").split(",")[0]?.trim() || "https";
-  const out = new Set<string>();
-  for (const host of hosts) {
-    out.add(`${proto}://${host}`);
-    out.add(`https://${host}`);
-  }
-  try {
-    out.add(new URL(request.url).origin);
-  } catch {
-    /* ignore */
-  }
-  const headerOrigin = request.headers.get("origin");
-  if (headerOrigin && headerOrigin !== "null") out.add(headerOrigin.replace(/\/+$/, ""));
-  return [...out];
-}
-
-const vercelHost = env("VERCEL_PROJECT_PRODUCTION_URL") ?? env("VERCEL_URL");
-const deployedOrigin =
-  publicOrigin(explicitBaseURL) ??
-  publicOrigin(env("APP_URL")) ??
-  publicOrigin(vercelHost);
-
-const staticTrustedOrigins: string[] = [
-  ...new Set([
-    "https://kalaiyaonline.com",
-    "https://www.kalaiyaonline.com",
-    "http://kalaiyaonline.com",
-    "http://www.kalaiyaonline.com",
-    "https://*.vercel.app",
-    "*.vercel.app",
-    ...[publicOrigin(explicitBaseURL), publicOrigin(env("APP_URL")), publicOrigin(vercelHost)]
-      .filter((v): v is string => Boolean(v))
-      .flatMap(withWwwTwin),
-    ...previewAllowedHosts,
-    ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-    ...LOCAL_DEV_ORIGINS,
-  ]),
-];
-
-const baseURL = explicitBaseURL
-  ? explicitBaseURL.replace(/\/+$/, "")
-  : {
-      allowedHosts: [
-        ...previewAllowedHosts,
-        "kalaiyaonline.com",
-        "www.kalaiyaonline.com",
-        "*.vercel.app",
-        "localhost",
-        "127.0.0.1",
-        "[::1]",
-      ],
-      protocol: "auto" as const,
-      fallback: deployedOrigin ?? "https://www.kalaiyaonline.com",
-    };
-
-async function trustedOrigins(request?: Request) {
-  return [...new Set([...staticTrustedOrigins, ...originsFromRequest(request)])];
-}
+// Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
+// Missing entries here surface as FORBIDDEN "Invalid origin".
+const trustedOrigins: string[] = explicitBaseURL
+  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
+  : [
+      // Host wildcards (matched against Origin's host)
+      ...previewAllowedHosts,
+      // Full-origin wildcards (matched against Origin)
+      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+      ...LOCAL_DEV_ORIGINS,
+    ];
 
 const databaseUrl = env("DATABASE_URL");
 
