@@ -120,7 +120,7 @@ test("keeps per-page article title and image for Facebook", () => {
 <title>बारामा वर्षा | KalaiyaOnline</title>
 <meta property="og:type" content="article">
 <meta property="og:title" content="बारामा वर्षा">
-<meta property="og:image" content="https://www.kalaiyaonline.com/share-image/article/rain">
+<meta property="og:image" content="https://www.kalaiyaonline.com/share-image/article/rain.jpg">
 </head></html>`;
   const out = injectGrokPwaHead(html, {
     appName: "KalaiyaOnline",
@@ -129,10 +129,27 @@ test("keeps per-page article title and image for Facebook", () => {
     site: { title: "KalaiyaOnline", card: "custom", image: "/og.jpg" },
   });
   assert.match(out, /property="og:title" content="बारामा वर्षा"/);
-  assert.match(out, /share-image\/article\/rain/);
+  assert.match(out, /share-image\/article\/rain\.jpg/);
   assert.equal(out.split('property="og:title"').length - 1, 1);
   assert.doesNotMatch(out, /property="og:title" content="KalaiyaOnline"/);
   assert.doesNotMatch(out, /og\.jpg/);
+});
+
+test("does not overwrite an existing featured og:image with the site card", () => {
+  const html = `<html><head>
+<title>क | KalaiyaOnline</title>
+<meta property="og:title" content="क">
+<meta property="og:image" content="https://scontent.xx.fbcdn.net/v/photo.jpg">
+</head></html>`;
+  const out = injectGrokPwaHead(html, {
+    appName: "KalaiyaOnline",
+    host: "www.kalaiyaonline.com",
+    cwd: mkdtempSync(join(tmpdir(), "grok-og-keep-")),
+    site: { title: "KalaiyaOnline", card: "custom", image: "/og.jpg" },
+  });
+  assert.match(out, /fbcdn\.net\/v\/photo\.jpg/);
+  assert.match(out, /property="og:title" content="क"/);
+  assert.doesNotMatch(out, /www\.kalaiyaonline\.com\/og\.jpg/);
 });
 
 test("does not duplicate twitter:card or og:title", () => {
@@ -461,6 +478,8 @@ test("filters non-document paths", () => {
   assert.equal(isDocumentPath("/api/thing"), false);
   assert.equal(isDocumentPath("/__grok/install/styles.css"), false);
   assert.equal(isDocumentPath("/logo.png"), false);
+  assert.equal(isDocumentPath("/share-image/article/foo"), false);
+  assert.equal(isDocumentPath("/share-image/article/foo.jpg"), false);
 });
 
 test("strips install params from the app link", () => {

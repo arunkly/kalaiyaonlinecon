@@ -130,6 +130,8 @@ export function isDocumentPath(pathname) {
   return (
     !path.startsWith("/__grok/") &&
     !path.startsWith("/api/") &&
+    !path.startsWith("/share-image") &&
+    !path.startsWith("/og-image") &&
     !path.startsWith("/@") &&
     !path.startsWith("/node_modules") &&
     !/\.[a-z0-9]+$/i.test(path)
@@ -383,6 +385,20 @@ export function hasArticleShareCard(html) {
   );
 }
 
+/** Keep any page that already published its own share image (news, gallery, homepage). */
+export function hasOwnShareCard(html) {
+  const src = String(html ?? "");
+  if (hasArticleShareCard(src)) return true;
+  const tagged =
+    src.match(/<meta\b[^>]*property=["']og:image(?::(?:url|secure_url))?["'][^>]*content=["']([^"']+)["'][^>]*>/i) ||
+    src.match(/<meta\b[^>]*content=["']([^"']+)["'][^>]*property=["']og:image(?::(?:url|secure_url))?["'][^>]*>/i);
+  if (!tagged) return false;
+  const image = String(tagged[1] || "");
+  if (!image) return false;
+  if (image.includes("og.grok.me")) return false;
+  return true;
+}
+
 export function stripShareMetaTags(html) {
   return String(html).replace(/<meta\b[^>]*>/gi, (tag) => {
     const attrs = [...tag.matchAll(/\b(?:property|name)\s*=\s*["']([^"']+)["']/gi)];
@@ -440,8 +456,8 @@ export function injectGrokPwaHead(html, ctx = {}) {
     host,
     documentTitle,
   );
-  const keepArticleCard = hasArticleShareCard(html);
-  let next = keepArticleCard ? html : stripShareMetaTags(html);
+  const keepShareCard = hasOwnShareCard(html);
+  let next = keepShareCard ? html : stripShareMetaTags(html);
 
   const missing = grokPwaHeadTags(appName)
     .filter(([key]) => {
@@ -451,7 +467,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
     })
     .map(([, tag]) => tag);
 
-  if (!keepArticleCard) {
+  if (!keepShareCard) {
     next = insertAfterHeadOpen(
       next,
       grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),

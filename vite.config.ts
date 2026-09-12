@@ -153,6 +153,22 @@ function shareCrawlerPlugin(): Plugin {
             return;
           }
           const pathOnly = (req.url ?? "").split("?", 1)[0] ?? "";
+
+          if (/^\/(share-image|api\/og)\//.test(pathOnly)) {
+            const imageMod = (await server.ssrLoadModule("/src/lib/og-card.server.ts")) as {
+              handleShareImageRequest: (pathname: string) => Promise<Response | null>;
+            };
+            const image = await imageMod.handleShareImageRequest(pathOnly);
+            if (image) {
+              res.statusCode = image.status;
+              image.headers.forEach((value, key) => {
+                res.setHeader(key, value);
+              });
+              res.end(Buffer.from(await image.arrayBuffer()));
+              return;
+            }
+          }
+
           if (!/^\/(article|gallery|directory)\//.test(pathOnly)) {
             next();
             return;

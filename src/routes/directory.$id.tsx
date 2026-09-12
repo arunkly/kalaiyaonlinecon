@@ -18,7 +18,8 @@ export const Route = createFileRoute("/directory/$id")({
       title: item?.name?.trim() || "KalaiyaOnline",
       description: item?.place || "डाइरेक्ट्री",
       path: `/directory/${encodeURIComponent(id)}`,
-      imagePath: `/share-image/directory/${encodeURIComponent(id)}`,
+      imagePath: `/share-image/directory/${encodeURIComponent(id)}.jpg`,
+      imageUrl: item?.imageUrl,
     });
   },
   component: DirectoryPostPage,

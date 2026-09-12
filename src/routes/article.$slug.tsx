@@ -31,7 +31,8 @@ export const Route = createFileRoute("/article/$slug")({
       title: headline,
       description: desc,
       path: `/article/${encodeURIComponent(slug)}`,
-      imagePath: `/share-image/article/${encodeURIComponent(slug)}`,
+      imagePath: `/share-image/article/${encodeURIComponent(slug)}.jpg`,
+      imageUrl: story?.imageUrl,
     });
   },
   component: ArticlePage,

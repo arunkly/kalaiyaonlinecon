@@ -70,6 +70,16 @@ export default async function grokPwaMiddleware(
   const path = event.url.pathname;
   const urlWithQuery = path + event.url.search;
 
+  if (path.startsWith("/share-image/") || path.startsWith("/api/og/") || path.startsWith("/og-image/")) {
+    try {
+      const { handleShareImageRequest } = await import("../../src/lib/og-card.server");
+      const image = await handleShareImageRequest(path);
+      if (image) return image;
+    } catch {
+      /* fall through */
+    }
+  }
+
   try {
     const { handleShareCrawlerRequest } = await import("../../src/lib/share-crawler");
     const botPage = await handleShareCrawlerRequest({

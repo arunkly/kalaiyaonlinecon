@@ -17,7 +17,8 @@ export const Route = createFileRoute("/gallery/$slug")({
       title: post?.title?.trim() || "KalaiyaOnline",
       description: post?.place || "ग्यालरी",
       path: `/gallery/${encodeURIComponent(slug)}`,
-      imagePath: `/share-image/gallery/${encodeURIComponent(slug)}`,
+      imagePath: `/share-image/gallery/${encodeURIComponent(slug)}.jpg`,
+      imageUrl: post?.coverUrl || post?.photos?.[0]?.imageUrl,
     });
   },
   component: GalleryPostPage,

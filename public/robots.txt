@@ -1,14 +1,22 @@
 User-agent: facebookexternalhit
 Allow: /
+Allow: /share-image/
+Allow: /og.jpg
 
 User-agent: Facebot
 Allow: /
+Allow: /share-image/
+Allow: /og.jpg
 
 User-agent: meta-externalagent
 Allow: /
+Allow: /share-image/
+Allow: /og.jpg
 
 User-agent: *
 Allow: /
+Allow: /share-image/
+Allow: /og.jpg
 Disallow: /admin
 Disallow: /api/auth
 Disallow: /login

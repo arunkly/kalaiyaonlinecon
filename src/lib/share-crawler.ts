@@ -1,3 +1,5 @@
+import { pickShareImage, shareProxyPath } from "@/lib/site-url";
+
 function publicBrandOrigin() {
   return "https://www.kalaiyaonline.com";
 }
@@ -30,11 +32,19 @@ function cleanText(value: unknown, fallback: string) {
   return text || fallback;
 }
 
-function imageFor(origin: string, kind: string, id: string) {
-  if (kind === "article") return `${origin}/share-image/article/${encodeURIComponent(id)}`;
-  if (kind === "gallery") return `${origin}/share-image/gallery/${encodeURIComponent(id)}`;
-  if (kind === "directory") return `${origin}/share-image/directory/${encodeURIComponent(id)}`;
-  return `${origin}/og.jpg`;
+function stamp(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "1";
+  const ms = Date.parse(raw);
+  if (Number.isFinite(ms)) return String(Math.floor(ms / 1000));
+  return raw.replace(/[^\w.-]/g, "").slice(0, 16) || "1";
+}
+
+function imageType(url: string) {
+  if (/\.png(\?|#|$)/i.test(url)) return "image/png";
+  if (/\.webp(\?|#|$)/i.test(url)) return "image/webp";
+  if (/\.gif(\?|#|$)/i.test(url)) return "image/gif";
+  return "image/jpeg";
 }
 
 function page(opts: { url: string; title: string; description: string; image: string }) {
@@ -42,6 +52,7 @@ function page(opts: { url: string; title: string; description: string; image: st
   const desc = esc(opts.description.slice(0, 180));
   const image = esc(opts.image);
   const url = esc(opts.url);
+  const type = imageType(opts.image);
   return `<!doctype html>
 <html lang="ne" prefix="og: https://ogp.me/ns#">
 <head>
@@ -59,7 +70,7 @@ function page(opts: { url: string; title: string; description: string; image: st
 <meta property="og:image" content="${image}">
 <meta property="og:image:url" content="${image}">
 <meta property="og:image:secure_url" content="${image}">
-<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:type" content="${type}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="${title}">
@@ -69,6 +80,7 @@ function page(opts: { url: string; title: string; description: string; image: st
 <meta name="twitter:image" content="${image}">
 </head>
 <body>
+<img src="${image}" alt="${title}" width="1200" height="630">
 <a href="${url}">${title}</a>
 </body>
 </html>`;
@@ -99,8 +111,16 @@ export async function renderShareCrawlerHtml(
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
   if (kind === "article") {
-    const rows = await sql<{ title: string; excerpt: string; body: string; slug: string }>`
-      select title, excerpt, body, slug
+    const rows = await sql<{
+      title: string;
+      excerpt: string;
+      body: string;
+      slug: string;
+      imageUrl: string;
+      updatedAt: string;
+    }>`
+      select title, excerpt, body, slug, image_url as "imageUrl",
+             created_at as "updatedAt"
       from desk_stories
       where slug = ${id} and published = true
       limit 1
@@ -113,12 +133,17 @@ export async function renderShareCrawlerHtml(
       url: `${origin}/article/${encodeURIComponent(slug)}`,
       title,
       description: cleanText(row.excerpt || row.body, title),
-      image: imageFor(origin, "article", slug),
+      image: pickShareImage(row.imageUrl, shareProxyPath("article", slug, stamp(row.updatedAt)), origin),
     });
   }
   if (kind === "gallery") {
-    const rows = await sql<{ title: string; place: string; slug: string }>`
-      select title, place, slug from gallery_posts where slug = ${id} limit 1
+    const rows = await sql<{ title: string; place: string; slug: string; cover: string; photo: string }>`
+      select p.title, p.place, p.slug, p.cover_url as cover, (
+        select image_url from gallery_photos where post_id = p.id order by id asc limit 1
+      ) as photo
+      from gallery_posts p
+      where p.slug = ${id}
+      limit 1
     `;
     const row = rows[0];
     if (!row) return null;
@@ -128,13 +153,13 @@ export async function renderShareCrawlerHtml(
       url: `${origin}/gallery/${encodeURIComponent(slug)}`,
       title,
       description: cleanText(row.place, title),
-      image: imageFor(origin, "gallery", slug),
+      image: pickShareImage(row.cover || row.photo, shareProxyPath("gallery", slug), origin),
     });
   }
   const num = Number(id);
   if (!Number.isFinite(num)) return null;
-  const rows = await sql<{ name: string; place: string; id: number }>`
-    select id, name, place from dir_entries where id = ${num} limit 1
+  const rows = await sql<{ name: string; place: string; id: number; imageUrl: string }>`
+    select id, name, place, image_url as "imageUrl" from dir_entries where id = ${num} limit 1
   `;
   const row = rows[0];
   if (!row) return null;
@@ -143,7 +168,7 @@ export async function renderShareCrawlerHtml(
     url: `${origin}/directory/${row.id}`,
     title,
     description: cleanText(row.place, title),
-    image: imageFor(origin, "directory", String(row.id)),
+    image: pickShareImage(row.imageUrl, shareProxyPath("directory", String(row.id)), origin),
   });
 }
 
@@ -162,7 +187,7 @@ export async function handleShareCrawlerRequest(opts: {
       status: 200,
       headers: {
         "content-type": "text/html; charset=utf-8",
-        "cache-control": "public, max-age=120, must-revalidate",
+        "cache-control": "public, max-age=60, must-revalidate",
         vary: "User-Agent",
       },
     });
