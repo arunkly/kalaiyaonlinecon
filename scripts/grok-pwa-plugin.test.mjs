@@ -115,6 +115,26 @@ test("platform chrome overwrites share-card metas and always sets og:title", () 
   assert.doesNotMatch(out, /property="og:image"/);
 });
 
+test("keeps per-page article title and image for Facebook", () => {
+  const html = `<html><head>
+<title>बारामा वर्षा | KalaiyaOnline</title>
+<meta property="og:type" content="article">
+<meta property="og:title" content="बारामा वर्षा">
+<meta property="og:image" content="https://www.kalaiyaonline.com/share-image/article/rain">
+</head></html>`;
+  const out = injectGrokPwaHead(html, {
+    appName: "KalaiyaOnline",
+    host: "www.kalaiyaonline.com",
+    cwd: mkdtempSync(join(tmpdir(), "grok-og-article-")),
+    site: { title: "KalaiyaOnline", card: "custom", image: "/og.jpg" },
+  });
+  assert.match(out, /property="og:title" content="बारामा वर्षा"/);
+  assert.match(out, /share-image\/article\/rain/);
+  assert.equal(out.split('property="og:title"').length - 1, 1);
+  assert.doesNotMatch(out, /property="og:title" content="KalaiyaOnline"/);
+  assert.doesNotMatch(out, /og\.jpg/);
+});
+
 test("does not duplicate twitter:card or og:title", () => {
   const once = injectGrokPwaHead("<html><head><title>Hello World</title></head></html>");
   const twice = injectGrokPwaHead(once);

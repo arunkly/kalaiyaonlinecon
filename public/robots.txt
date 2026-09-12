@@ -1,7 +1,16 @@
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Facebot
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
+
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /api/
+Disallow: /api/auth
 Disallow: /login
 Disallow: /account
 Sitemap: https://www.kalaiyaonline.com/sitemap.xml

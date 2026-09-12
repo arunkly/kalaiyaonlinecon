@@ -47,6 +47,7 @@ export function SiteDeskPanel() {
   const [tagline, setTagline] = useState(DEFAULT_SITE.tagline);
   const [description, setDescription] = useState(DEFAULT_SITE.description);
   const [searchHint, setSearchHint] = useState(DEFAULT_SITE.searchHint);
+  const [website, setWebsite] = useState(DEFAULT_SITE.website);
   const [bottomBar, setBottomBar] = useState<ChromeKey[]>(DEFAULT_SITE.bottomBar);
   const [footerMenu, setFooterMenu] = useState<ChromeKey[]>(DEFAULT_SITE.footerMenu);
   const [saving, setSaving] = useState(false);
@@ -61,6 +62,7 @@ export function SiteDeskPanel() {
         setTagline(s.tagline);
         setDescription(s.description);
         setSearchHint(s.searchHint);
+        setWebsite(s.website);
         setBottomBar(s.bottomBar);
         setFooterMenu(s.footerMenu);
       })
@@ -75,7 +77,7 @@ export function SiteDeskPanel() {
     <section className="space-y-3 rounded-2xl border border-line bg-surface p-5">
       <h2 className="font-display text-2xl">साइट सेटिङ</h2>
       <p className="text-sm text-muted">
-        साइटको नाम, ट्यागलाइन, बटम बार र फुटर मेनु यहाँबाट बदलिन्छ।
+        साइटको नाम, डोमेन, ट्यागलाइन, बटम बार र फुटर मेनु यहाँबाट बदलिन्छ। नाम वा डोमेन बदलिए गोपनीयता नीति आफैं अद्यावधिक हुन्छ।
       </p>
       {error ? <p className="text-sm text-mark">{error}</p> : null}
       {ok ? <p className="text-sm font-semibold text-[#14934e]">{ok}</p> : null}
@@ -87,7 +89,7 @@ export function SiteDeskPanel() {
           setError(null);
           setOk(null);
           void saveSiteIdentity({
-            data: { name, nameNp, tagline, description, searchHint, bottomBar, footerMenu },
+            data: { name, nameNp, tagline, description, searchHint, website, bottomBar, footerMenu },
           })
             .then(() => {
               setOk("साइट सेटिङ सेभ भयो। पेज रिफ्रेस गर्नुहोस्।");
@@ -121,6 +123,15 @@ export function SiteDeskPanel() {
         <label className="text-sm font-medium">
           खोज बाकसको पाठ
           <input value={searchHint} onChange={(e) => setSearchHint(e.target.value)} className={field} />
+        </label>
+        <label className="text-sm font-medium">
+          साइट डोमेन
+          <input
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            placeholder="https://kalaiyaonline.com"
+            className={field}
+          />
         </label>
         <ModulePicks
           label="बटम बार"

@@ -70,6 +70,18 @@ export default async function grokPwaMiddleware(
   const path = event.url.pathname;
   const urlWithQuery = path + event.url.search;
 
+  try {
+    const { handleShareCrawlerRequest } = await import("../../src/lib/share-crawler");
+    const botPage = await handleShareCrawlerRequest({
+      pathname: path,
+      userAgent: event.req.headers.get("user-agent") ?? "",
+      host: requestHost(event),
+    });
+    if (botPage) return botPage;
+  } catch {
+    /* fall through to the app document */
+  }
+
   if (path === "/__grok/manifest.webmanifest" || path === "/__grok/manifest.json") {
     return new Response(renderWebManifest(requestHost(event)), {
       headers: {

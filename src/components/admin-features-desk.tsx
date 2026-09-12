@@ -16,7 +16,7 @@ export function FeaturesDeskPanel() {
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-surface p-5">
       <h2 className="font-display text-2xl">मोड्युल अन / अफ</h2>
-      <p className="text-sm text-muted">बन्द गरेको सेवा मेनु, होमपेज र पेजबाट लुक्छ।</p>
+      <p className="text-sm text-muted">बन्द गरेको सेवा मेनु, होमपेज, पेज र गोपनीयता नीतिबाट लुक्छ। मोड्युल सेभ गर्दा नीति आफैं अद्यावधिक हुन्छ।</p>
       {error ? <p className="text-sm text-mark">{error}</p> : null}
       {ok ? <p className="text-sm font-semibold text-[#14934e]">{ok}</p> : null}
       <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white">

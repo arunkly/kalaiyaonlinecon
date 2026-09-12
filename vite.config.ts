@@ -142,7 +142,58 @@ function authPopupPlugin(): Plugin {
   };
 }
 
-// `0.0.0.0:8080` is the live-preview contract — don't change host/port.
+function shareCrawlerPlugin(): Plugin {
+  return {
+    name: "kalaiya-share-crawler",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        try {
+          if ((req.method ?? "GET").toUpperCase() !== "GET") {
+            next();
+            return;
+          }
+          const pathOnly = (req.url ?? "").split("?", 1)[0] ?? "";
+          if (!/^\/(article|gallery|directory)\//.test(pathOnly)) {
+            next();
+            return;
+          }
+          const ua = String(req.headers["user-agent"] ?? "");
+          if (
+            !/facebookexternalhit|Facebot|Twitterbot|WhatsApp|Slackbot|LinkedInBot|TelegramBot|Discordbot|Pinterest|vkShare|Googlebot-Image|meta-externalagent|meta-externalfetcher|facebookcatalog/i.test(
+              ua,
+            )
+          ) {
+            next();
+            return;
+          }
+          const mod = (await server.ssrLoadModule("/src/lib/share-crawler.ts")) as {
+            handleShareCrawlerRequest: (opts: {
+              pathname: string;
+              userAgent: string;
+              host?: string | null;
+            }) => Promise<Response | null>;
+          };
+          const response = await mod.handleShareCrawlerRequest({
+            pathname: pathOnly,
+            userAgent: ua,
+            host: String(req.headers["x-forwarded-host"] ?? req.headers.host ?? ""),
+          });
+          if (!response) {
+            next();
+            return;
+          }
+          res.statusCode = response.status;
+          response.headers.forEach((value, key) => {
+            res.setHeader(key, value);
+          });
+          res.end(Buffer.from(await response.arrayBuffer()));
+        } catch {
+          next();
+        }
+      });
+    },
+  };
+}
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
 export default defineConfig(({ command, isPreview }) => ({
@@ -159,6 +210,7 @@ export default defineConfig(({ command, isPreview }) => ({
   resolve: { tsconfigPaths: true },
   plugins: [
     pgliteBootstrapPlugin(),
+    shareCrawlerPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),
     // Dev-only /__app-env, read by scripts/check-auth-invariant.mjs.

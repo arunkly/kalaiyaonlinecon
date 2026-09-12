@@ -43,7 +43,9 @@ async function fallbackJpeg() {
 }
 
 async function proxyRemoteImage(src: string | undefined) {
-  const url = String(src || "").trim();
+  let url = String(src || "").trim();
+  if (url.startsWith("//")) url = `https:${url}`;
+  else if (url.startsWith("/")) url = `${publicOrigin()}${url}`;
   if (!url || !/^https?:\/\//i.test(url)) return fallbackJpeg();
   try {
     const ctrl = new AbortController();
@@ -73,12 +75,18 @@ async function proxyRemoteImage(src: string | undefined) {
 }
 
 export async function proxyArticleImage(slug: string) {
+  let key = String(slug || "");
+  try {
+    key = decodeURIComponent(key);
+  } catch {
+    /* keep raw */
+  }
   try {
     const { getSql } = await import("@/lib/db");
     const sql = await getSql();
     const rows = await sql<{ imageUrl: string }>`
       select image_url as "imageUrl" from desk_stories
-      where slug = ${slug} and published = true
+      where slug = ${key} and published = true
       limit 1
     `;
     return proxyRemoteImage(rows[0]?.imageUrl);

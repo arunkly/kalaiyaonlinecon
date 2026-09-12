@@ -375,6 +375,14 @@ export function grokOgHeadTags({
   return tags;
 }
 
+export function hasArticleShareCard(html) {
+  const src = String(html ?? "");
+  return (
+    /<meta\b[^>]*property=["']og:type["'][^>]*content=["']article["'][^>]*>/i.test(src) ||
+    /<meta\b[^>]*content=["']article["'][^>]*property=["']og:type["'][^>]*>/i.test(src)
+  );
+}
+
 export function stripShareMetaTags(html) {
   return String(html).replace(/<meta\b[^>]*>/gi, (tag) => {
     const attrs = [...tag.matchAll(/\b(?:property|name)\s*=\s*["']([^"']+)["']/gi)];
@@ -432,7 +440,8 @@ export function injectGrokPwaHead(html, ctx = {}) {
     host,
     documentTitle,
   );
-  let next = stripShareMetaTags(html);
+  const keepArticleCard = hasArticleShareCard(html);
+  let next = keepArticleCard ? html : stripShareMetaTags(html);
 
   const missing = grokPwaHeadTags(appName)
     .filter(([key]) => {
@@ -442,10 +451,12 @@ export function injectGrokPwaHead(html, ctx = {}) {
     })
     .map(([, tag]) => tag);
 
-  next = insertAfterHeadOpen(
-    next,
-    grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
-  );
+  if (!keepArticleCard) {
+    next = insertAfterHeadOpen(
+      next,
+      grokOgHeadTags({ host, appName, site, documentTitle, cwd }).join(""),
+    );
+  }
 
   if (!next.includes("/grok-app-builder/extensions.js")) {
     missing.push(...grokExtensionsHeadTags(projectId));
