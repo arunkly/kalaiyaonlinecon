@@ -179,7 +179,13 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  if (dbSource === "neon") return createNeonSql();
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "DATABASE_URL is required in production. Set the Neon/Postgres URI in cPanel environment variables.",
+    );
+  }
+  return createPgliteSql();
 }
 
 /**

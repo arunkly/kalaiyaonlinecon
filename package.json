@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
     "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
+    "build:cpanel": "NITRO_PRESET=node-server node scripts/with-app-env.mjs vite build && npm run db:migrate",
+    "pack:cpanel": "node scripts/pack-cpanel.mjs",
     "start": "node .output/server/index.mjs",
     "db:migrate": "node scripts/migrate.mjs",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
@@ -22,7 +24,7 @@
     "format": "prettier --write ."
   },
   "engines": {
-    "node": "22.x"
+    "node": ">=20"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",

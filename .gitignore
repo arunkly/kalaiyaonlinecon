@@ -5,6 +5,7 @@ node_modules
 .grok
 .tanstack
 .vercel
+.output
 artifacts
 attachments
 screenshots
