@@ -1,0 +1,23 @@
+RewriteEngine On
+RewriteBase /
+
+# Block installer after config exists is handled in PHP.
+RewriteRule ^uploads/ - [L]
+RewriteRule ^assets/ - [L]
+RewriteRule ^logo\.jpg$ - [L]
+RewriteRule ^logo-dark\.jpg$ - [L]
+RewriteRule ^og\.jpg$ - [L]
+RewriteRule ^favicon\.svg$ - [L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^ index.php [QSA,L]
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+</IfModule>
+
+php_value upload_max_filesize 12M
+php_value post_max_size 16M

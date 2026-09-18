@@ -1,0 +1,205 @@
+SET NAMES utf8mb4;
+SET time_zone = '+05:45';
+
+CREATE TABLE IF NOT EXISTS users (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(190) NOT NULL UNIQUE,
+  name VARCHAR(190) NOT NULL DEFAULT '',
+  password_hash VARCHAR(255) NOT NULL,
+  role VARCHAR(32) NOT NULL DEFAULT 'member',
+  image VARCHAR(500) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS settings (
+  k VARCHAR(80) PRIMARY KEY,
+  v LONGTEXT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS desk_categories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(80) NOT NULL UNIQUE,
+  label VARCHAR(120) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS desk_stories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL DEFAULT 0,
+  slug VARCHAR(190) NOT NULL UNIQUE,
+  title VARCHAR(500) NOT NULL,
+  excerpt TEXT NOT NULL,
+  body LONGTEXT NOT NULL,
+  category VARCHAR(80) NOT NULL DEFAULT 'local',
+  categories VARCHAR(500) NOT NULL DEFAULT '',
+  location VARCHAR(190) NOT NULL DEFAULT 'कलैया, बारा',
+  tags VARCHAR(500) NOT NULL DEFAULT '',
+  image_url VARCHAR(800) NOT NULL DEFAULT '',
+  author_name VARCHAR(190) NOT NULL DEFAULT '',
+  published TINYINT(1) NOT NULL DEFAULT 1,
+  views INT UNSIGNED NOT NULL DEFAULT 0,
+  deleted_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY published_idx (published, deleted_at, created_at),
+  KEY category_idx (category)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS desk_comments (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(190) NOT NULL,
+  user_id INT UNSIGNED NOT NULL DEFAULT 0,
+  author VARCHAR(190) NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY slug_idx (slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS gallery_posts (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(190) NOT NULL UNIQUE,
+  title VARCHAR(500) NOT NULL,
+  place VARCHAR(190) NOT NULL DEFAULT 'कलैया',
+  blurb TEXT NOT NULL,
+  category VARCHAR(80) NOT NULL DEFAULT 'local',
+  cover_url VARCHAR(800) NOT NULL DEFAULT '',
+  views INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS gallery_photos (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  post_id INT UNSIGNED NOT NULL,
+  image_url VARCHAR(800) NOT NULL,
+  caption VARCHAR(500) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY post_idx (post_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS dir_entries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(250) NOT NULL,
+  category VARCHAR(80) NOT NULL DEFAULT 'local',
+  place VARCHAR(190) NOT NULL DEFAULT 'कलैया',
+  note TEXT NOT NULL,
+  phone VARCHAR(80) NOT NULL DEFAULT '',
+  email VARCHAR(190) NOT NULL DEFAULT '',
+  views INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS blood_donors (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(190) NOT NULL,
+  blood_group VARCHAR(8) NOT NULL,
+  phone VARCHAR(80) NOT NULL DEFAULT '',
+  place VARCHAR(190) NOT NULL DEFAULT '',
+  age INT NULL,
+  gender VARCHAR(20) NOT NULL DEFAULT '',
+  last_donated VARCHAR(80) NOT NULL DEFAULT '',
+  available TINYINT(1) NOT NULL DEFAULT 1,
+  note TEXT NOT NULL,
+  photo_url VARCHAR(800) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY group_idx (blood_group)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS blood_requests (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  patient VARCHAR(190) NOT NULL,
+  blood_group VARCHAR(8) NOT NULL,
+  hospital VARCHAR(190) NOT NULL DEFAULT '',
+  place VARCHAR(190) NOT NULL DEFAULT '',
+  units INT NOT NULL DEFAULT 1,
+  phone VARCHAR(80) NOT NULL DEFAULT '',
+  needed_by VARCHAR(80) NOT NULL DEFAULT '',
+  note TEXT NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS epaper_issues (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  issue_date DATE NOT NULL,
+  title VARCHAR(250) NOT NULL DEFAULT '',
+  drive_url VARCHAR(800) NOT NULL,
+  views INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS election_desk (
+  id VARCHAR(40) PRIMARY KEY,
+  payload LONGTEXT NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL DEFAULT 0,
+  author VARCHAR(190) NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS ads (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slot VARCHAR(40) NOT NULL,
+  kind VARCHAR(20) NOT NULL DEFAULT 'text',
+  title VARCHAR(250) NOT NULL DEFAULT '',
+  body TEXT NOT NULL,
+  image_url VARCHAR(800) NOT NULL DEFAULT '',
+  html TEXT NOT NULL,
+  href VARCHAR(800) NOT NULL DEFAULT '',
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY slot_idx (slot)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS about_page (
+  id TINYINT PRIMARY KEY,
+  title VARCHAR(250) NOT NULL DEFAULT 'हाम्रोबारे',
+  body LONGTEXT NOT NULL,
+  phone VARCHAR(80) NOT NULL DEFAULT '',
+  email VARCHAR(190) NOT NULL DEFAULT '',
+  address VARCHAR(250) NOT NULL DEFAULT '',
+  facebook VARCHAR(300) NOT NULL DEFAULT '',
+  website VARCHAR(300) NOT NULL DEFAULT 'https://kalaiyaonline.com'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS privacy_page (
+  id TINYINT PRIMARY KEY,
+  intro LONGTEXT NOT NULL,
+  extra LONGTEXT NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(190) NOT NULL,
+  email VARCHAR(190) NOT NULL DEFAULT '',
+  phone VARCHAR(80) NOT NULL DEFAULT '',
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO desk_categories (slug, label) VALUES
+  ('headline', 'हेडलाइन'),
+  ('local', 'स्थानीय'),
+  ('news', 'राष्ट्रिय'),
+  ('international', 'अन्तर्राष्ट्रिय'),
+  ('politics', 'राजनीति'),
+  ('crime', 'अपराध'),
+  ('business', 'व्यापार'),
+  ('health', 'स्वास्थ्य'),
+  ('sports', 'खेलकुद'),
+  ('tech', 'टेक'),
+  ('community', 'समुदाय'),
+  ('development', 'विकास')
+ON DUPLICATE KEY UPDATE label = VALUES(label);
+
+INSERT INTO about_page (id, title, body, phone, email, address, facebook, website) VALUES
+  (1, 'हाम्रोबारे', 'कलैयाअनलाइनले कलैया, बारा, पर्सा र तराई मधेशका स्थानीय समाचार समेट्छ।', '', '', 'कलैया, बारा, मधेश', 'https://www.facebook.com/kalaiyalive/', 'https://www.kalaiyaonline.com')
+ON DUPLICATE KEY UPDATE id = id;
+
+INSERT INTO privacy_page (id, intro, extra) VALUES
+  (1, 'कलैयाअनलाइनले समाचार पढाइ, सदस्यता र सम्पर्क फारमका लागि आवश्यक विवरण मात्र राख्छ।', '')
+ON DUPLICATE KEY UPDATE id = id;
